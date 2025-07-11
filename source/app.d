@@ -1,0 +1,42 @@
+module app;
+@safe:
+
+import vibe.vibe;
+import vibe.http.server: HTTPServerSettings, listenHTTP;
+import vibe.http.router: URLRouter;
+import vibe.core.log: logInfo;
+import std.stdio: writeln;
+import services.payment_processor: PaymentProcessor;
+import handlers.payments: PaymentHandler;
+import handlers.summary: SummaryHandler;
+
+void main()
+{
+    // Initialize the application
+    writeln("Starting Rinha de Backend 2025 D application...");
+
+    auto settings = new HTTPServerSettings;
+    settings.port = 9999;
+    settings.bindAddresses = ["::1", "127.0.0.1"];
+
+    auto router = new URLRouter;
+
+    // Set up the payment processor with default and fallback URLs
+    auto paymentProcessor = new PaymentProcessor(
+        "http://payment-processor-default:8080",
+        "http://payment-processor-fallback:8080"
+    );
+
+    // Initialize handlers
+    auto paymentHandler = new PaymentHandler(paymentProcessor);
+    auto summaryHandler = new SummaryHandler();
+
+    // Configure routes
+    router.post("/payments", &paymentHandler.processPayment);
+    router.get("/payments-summary", &summaryHandler.getSummary);
+
+    // Start the server
+    listenHTTP(settings, router);
+    logInfo("Server is running on http://localhost:9999");
+    runApplication();
+}

@@ -1,0 +1,8 @@
+{
+    "description": "A simple vibe.d server application.",
+    "license": "proprietary",
+    "name": "rinha-de-backend-2025-d",
+    "dependencies": {
+        "vibe-d": "~>0.10.2"
+    }
+}
