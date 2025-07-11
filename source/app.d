@@ -26,11 +26,19 @@ void main()
     import handlers.summary: PaymentDataStore;
     auto dataStore = new PaymentDataStore();
 
+    // Initialize health monitor
+    import services.health_monitor: HealthMonitor;
+    auto healthMonitor = new HealthMonitor(
+        "http://payment-processor-default:8080",
+        "http://payment-processor-fallback:8080"
+    );
+
     // Set up the payment processor with default and fallback URLs
     auto paymentProcessor = new PaymentProcessor(
         "http://payment-processor-default:8080",
         "http://payment-processor-fallback:8080",
-        dataStore
+        dataStore,
+        healthMonitor
     );
 
     // Initialize handlers

@@ -1,5 +1,4 @@
 module handlers.payments;
-
 @safe:
 
 import vibe.http.server: HTTPServerRequest, HTTPServerResponse;

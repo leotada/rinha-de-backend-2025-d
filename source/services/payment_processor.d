@@ -10,7 +10,7 @@ import core.time: seconds;
 import core.sync.mutex: Mutex;
 import std.container: DList;
 import handlers.summary: PaymentDataStore, PaymentData, ProcessorType;
-
+import services.health_monitor: HealthMonitor;
 import std.datetime: SysTime;
 struct PaymentRequest {
     string correlationId;
@@ -26,16 +26,18 @@ struct FailedRequest {
 class PaymentProcessor {
     private string defaultProcessorUrl;
     private string fallbackProcessorUrl;
+    private HealthMonitor healthMonitor;
     private DList!(FailedRequest) retryQueue;
     private Mutex queueMutex;
     private const int maxRetries = 5;
     private bool isRunning = true;
     private PaymentDataStore dataStore;
 
-    this(string defaultUrl, string fallbackUrl, PaymentDataStore store) {
+    this(string defaultUrl, string fallbackUrl, PaymentDataStore store, HealthMonitor monitor) {
         this.defaultProcessorUrl = defaultUrl;
         this.fallbackProcessorUrl = fallbackUrl;
         this.dataStore = store;
+        this.healthMonitor = monitor;
         this.retryQueue = DList!(FailedRequest)();
         this.queueMutex = new Mutex();
         // Start retry worker as a vibe.d task instead of thread
@@ -56,7 +58,8 @@ class PaymentProcessor {
         // Use vibe.d tasks instead of threads for better @safe compatibility
         runTask(() nothrow {
             try {
-                trySendPayment(request, defaultProcessorUrl, 0);
+                auto bestUrl = healthMonitor.getBestProcessorUrl();
+                trySendPayment(request, bestUrl, 0);
             } catch (Exception e) {
                 logError("Error sending payment request: %s", e.msg);
             }
@@ -92,7 +95,8 @@ class PaymentProcessor {
 
     private void handleFailedRequest(PaymentRequest request, int attempt) {
         if (attempt < maxRetries) {
-            auto nextUrl = (attempt % 2 == 0) ? fallbackProcessorUrl : defaultProcessorUrl;
+            // Sempre consulta o HealthMonitor para o próximo retry
+            auto nextUrl = healthMonitor.getBestProcessorUrl();
             runTask(() nothrow {
                 try {
                     trySendPayment(request, nextUrl, attempt + 1);

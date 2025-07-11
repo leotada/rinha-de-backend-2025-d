@@ -1,7 +1,6 @@
 module handlers.summary;
 @safe:
 
-
 import vibe.http.server: HTTPServerRequest, HTTPServerResponse;
 import vibe.data.json;
 import std.datetime: SysTime;

@@ -1,4 +1,5 @@
 module handlers.health;
+@safe:
 
 import vibe.http.server: HTTPServerRequest, HTTPServerResponse;
 import vibe.data.json: serializeToJson;
