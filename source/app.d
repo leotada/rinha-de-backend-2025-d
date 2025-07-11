@@ -22,15 +22,20 @@ void main()
 
     auto router = new URLRouter;
 
+    // Initialize data store
+    import handlers.summary: PaymentDataStore;
+    auto dataStore = new PaymentDataStore();
+
     // Set up the payment processor with default and fallback URLs
     auto paymentProcessor = new PaymentProcessor(
         "http://payment-processor-default:8080",
-        "http://payment-processor-fallback:8080"
+        "http://payment-processor-fallback:8080",
+        dataStore
     );
 
     // Initialize handlers
     auto paymentHandler = new PaymentHandler(paymentProcessor);
-    auto summaryHandler = new SummaryHandler();
+    auto summaryHandler = new SummaryHandler(dataStore);
 
     // Configure routes
     router.get("/", &healthHandler);

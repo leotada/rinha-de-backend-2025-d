@@ -17,11 +17,12 @@ class PaymentHandler {
     void processPayment(HTTPServerRequest req, HTTPServerResponse res) {
         try {
             auto json = req.json;
+
+            import std.datetime: Clock;
             auto request = PaymentRequest(
                 json["correlationId"].get!string,
                 json["amount"].get!double,
-                json["to"].get!string,
-                json["from"].get!string
+                Clock.currTime()
             );
 
             paymentProcessor.sendPaymentRequest(request);

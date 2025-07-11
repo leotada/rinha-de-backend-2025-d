@@ -9,12 +9,13 @@ import vibe.core.core: runTask, sleep;
 import core.time: seconds;
 import core.sync.mutex: Mutex;
 import std.container: DList;
+import handlers.summary: PaymentDataStore, PaymentData, ProcessorType;
 
+import std.datetime: SysTime;
 struct PaymentRequest {
     string correlationId;
     double amount;
-    string to;
-    string from;
+    SysTime requestedAt;
 }
 
 struct FailedRequest {
@@ -29,10 +30,12 @@ class PaymentProcessor {
     private Mutex queueMutex;
     private const int maxRetries = 5;
     private bool isRunning = true;
+    private PaymentDataStore dataStore;
 
-    this(string defaultUrl, string fallbackUrl) {
+    this(string defaultUrl, string fallbackUrl, PaymentDataStore store) {
         this.defaultProcessorUrl = defaultUrl;
         this.fallbackProcessorUrl = fallbackUrl;
+        this.dataStore = store;
         this.retryQueue = DList!(FailedRequest)();
         this.queueMutex = new Mutex();
         // Start retry worker as a vibe.d task instead of thread
@@ -67,7 +70,17 @@ class PaymentProcessor {
                 req.method = HTTPMethod.POST;
                 req.writeJsonBody(payload);
             }, (res) {
-                if (res.statusCode < 200 || res.statusCode >= 300) {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    auto processorType = (url == defaultProcessorUrl)
+                        ? ProcessorType.Default
+                        : ProcessorType.Fallback;
+                    auto paymentInfo = PaymentData(
+                        request.amount,
+                        request.requestedAt,
+                        processorType
+                    );
+                    dataStore.addPayment(paymentInfo);
+                } else {
                     handleFailedRequest(request, attempt);
                 }
             });
@@ -120,8 +133,7 @@ class PaymentProcessor {
         Json payload = Json.emptyObject;
         payload["correlationId"] = request.correlationId;
         payload["amount"] = request.amount;
-        payload["to"] = request.to;
-        payload["from"] = request.from;
+        payload["requestedAt"] = request.requestedAt.toISOExtString();
         return payload;
     }
 }
