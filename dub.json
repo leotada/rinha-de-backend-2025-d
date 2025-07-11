@@ -4,5 +4,23 @@
     "name": "rinha-de-backend-2025-d",
     "dependencies": {
         "vibe-d": "~>0.10.2"
-    }
+    },
+    "sourcePaths": ["source", "tests"],
+    "importPaths": ["source", "tests"],
+    "configurations": [
+        {
+            "name": "application",
+            "targetType": "executable",
+            "mainSourceFile": "source/app.d",
+            "excludedSourceFiles": ["tests/*"]
+        },
+        {
+            "name": "unittest",
+            "targetType": "executable",
+            "mainSourceFile": "tests/test_main.d",
+            "sourcePaths": ["source", "tests"],
+            "importPaths": ["source", "tests"],
+            "excludedSourceFiles": ["source/app.d"]
+        }
+    ]
 }
