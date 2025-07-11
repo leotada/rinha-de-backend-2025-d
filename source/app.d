@@ -9,6 +9,7 @@ import std.stdio: writeln;
 import services.payment_processor: PaymentProcessor;
 import handlers.payments: PaymentHandler;
 import handlers.summary: SummaryHandler;
+import handlers.health: healthHandler;
 
 void main()
 {
@@ -17,7 +18,7 @@ void main()
 
     auto settings = new HTTPServerSettings;
     settings.port = 9999;
-    settings.bindAddresses = ["::1", "127.0.0.1"];
+    settings.bindAddresses = ["0.0.0.0"];
 
     auto router = new URLRouter;
 
@@ -32,6 +33,7 @@ void main()
     auto summaryHandler = new SummaryHandler();
 
     // Configure routes
+    router.get("/", &healthHandler);
     router.post("/payments", &paymentHandler.processPayment);
     router.get("/payments-summary", &summaryHandler.getSummary);
 
