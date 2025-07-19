@@ -30,7 +30,7 @@ class HealthMonitor {
         runTask(&monitorLoop);
     }
 
-    private void monitorLoop() @safe nothrow {
+    private void monitorLoop() nothrow {
         while (true) {
             try {
                 checkHealth(defaultUrl, true);
@@ -42,13 +42,13 @@ class HealthMonitor {
         }
     }
 
-    private void checkHealth(string url, bool isDefault) @safe {
+    private void checkHealth(string url, bool isDefault) {
         try {
             requestHTTP(url ~ "/payments/service-health",
-                (scope HTTPClientRequest req) @safe nothrow {
+                (scope HTTPClientRequest req) nothrow {
                     req.method = HTTPMethod.GET;
                 },
-                (scope HTTPClientResponse res) @safe {
+                (scope HTTPClientResponse res) {
                     import vibe.stream.operations: readAllUTF8;
                     auto responseBody = res.bodyReader.readAllUTF8();
                     auto json = parseJson(responseBody);
@@ -83,12 +83,24 @@ class HealthMonitor {
 
     string getBestProcessorUrl() {
         synchronized (mutex) {
-            if (!defaultHealth.failing)
+            bool defaultIsViable = !defaultHealth.failing;
+            bool fallbackIsViable = !fallbackHealth.failing;
+
+            if (defaultIsViable && fallbackIsViable) {
+                // Ambos estão saudáveis, escolher o com menor tempo de resposta
+                if (defaultHealth.minResponseTime <= fallbackHealth.minResponseTime) {
+                    return defaultUrl;
+                } else {
+                    return fallbackUrl;
+                }
+            } else if (defaultIsViable) {
                 return defaultUrl;
-            if (!fallbackHealth.failing)
+            } else if (fallbackIsViable) {
                 return fallbackUrl;
-            // Se ambos falharem, retorna default por padrão
-            return defaultUrl;
+            } else {
+                // Ambos estão falhando, retorna default como última opção
+                return defaultUrl;
+            }
         }
     }
 }

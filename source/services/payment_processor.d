@@ -12,6 +12,7 @@ import std.container: DList;
 import handlers.summary: PaymentDataStore, PaymentData, ProcessorType;
 import services.health_monitor: HealthMonitor;
 import std.datetime: SysTime;
+
 struct PaymentRequest {
     string correlationId;
     double amount;
@@ -105,10 +106,12 @@ class PaymentProcessor {
                 }
             });
         } else {
-            logInfo("Max retries reached for request, adding to persistent queue: %s", request.correlationId);
+            // discard the request if max retries reached
+            logInfo("Max retries reached for request: %s", request.correlationId);
+            /* logInfo("Max retries reached for request, adding to persistent queue: %s", request.correlationId);
             synchronized (queueMutex) {
                 retryQueue.insertBack(FailedRequest(request, attempt));
-            }
+            } */
         }
     }
 
